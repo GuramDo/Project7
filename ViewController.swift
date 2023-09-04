@@ -64,18 +64,31 @@ class ViewController: UITableViewController {
             guard let self = self, let alertController = alertController else { return }
             
             if let searchText = alertController.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines), !searchText.isEmpty {
-                // Filter petitions based on search text
-                self.filteredPetitions = self.petitions.filter { petition in
-                    return petition.title.lowercased().contains(searchText.lowercased()) ||
-                           petition.body.lowercased().contains(searchText.lowercased())
+                // Show an activity indicator while filtering
+                let activityIndicator = UIActivityIndicatorView(style: .medium)
+                activityIndicator.startAnimating()
+                self.navigationItem.rightBarButtonItem = UIBarButtonItem(customView: activityIndicator)
+                
+                // Perform filtering in the background
+                DispatchQueue.global(qos: .background).async {
+                    self.filteredPetitions = self.petitions.filter { petition in
+                        return petition.title.lowercased().contains(searchText.lowercased()) ||
+                               petition.body.lowercased().contains(searchText.lowercased())
+                    }
+                    
+                    // Update the UI on the main thread
+                    DispatchQueue.main.async {
+                        // Update table view with filtered data
+                        self.tableView.reloadData()
+                        // Restore the original "Filter" button
+                        self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Filter", style: .plain, target: self, action: #selector(self.filterArray))
+                    }
                 }
             } else {
                 // Reset filter if search text is empty
                 self.filteredPetitions = self.petitions
+                self.tableView.reloadData()
             }
-            
-            // Update table view with filtered data
-            self.tableView.reloadData()
         }
 
         // Cancel action for filtering
@@ -130,6 +143,7 @@ class ViewController: UITableViewController {
         present(ac, animated: true)
     }
 }
+
 
 
 
